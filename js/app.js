@@ -17,6 +17,7 @@ class MentalHealthBuddyApp {
         this.setupTextHandlers();
         this.setupCombinedHandlers();
         this.setupChatHandlers();
+        this.setupProfessionalFinder();
         
         console.log("Mental Health Buddy initialized");
     }
@@ -499,6 +500,19 @@ class MentalHealthBuddyApp {
         
         if (status === 'Analyzed') {
             statusElement.classList.add('ready');
+        }
+    }
+    setupProfessionalFinder() {
+        // Initialize professional finder when tab is activated
+        const professionalsTab = document.querySelector('[data-tab="professionals"]');
+        if (professionalsTab) {
+            professionalsTab.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (typeof professionalFinderUI !== 'undefined') {
+                        professionalFinderUI.initialize();
+                    }
+                }, 100);
+            });
         }
     }
 }

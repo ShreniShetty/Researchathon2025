@@ -19,6 +19,7 @@
             <button class="tab-button" data-tab="text">Text Analysis</button>
             <button class="tab-button" data-tab="combined">Combined Analysis</button>
             <button class="tab-button" data-tab="chat">Gen Z Chat</button>
+            <button class="tab-button" data-tab="professionals">Find Help 🏥</button>
         </div>
 
         <div class="tab-content">
@@ -98,6 +99,27 @@
                     <div class="chat-analysis">
                         <h3>Conversation Analysis</h3>
                         <div id="chatAnalysisResult" class="result"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="professionals" class="tab-pane">
+                <h2>Find Mental Health Professionals</h2>
+                <p class="subtitle">Zomato-style matching with ratings, reviews, and proximity</p>
+                
+                <div class="finder-container">
+                    <div class="finder-header">
+                        <div id="professionalFilters" class="filters-container">
+                            <!-- Filters will be rendered here -->
+                        </div>
+                        <button id="getEmotionRecommendations" class="recommendation-btn">
+                            Get Recommendations Based on My Mood
+                        </button>
+                    </div>
+                    
+                    <div class="professionals-container">
+                        <div id="professionalsList" class="professionals-list">
+                            <!-- Professionals will be rendered here -->
+                        </div>
                     </div>
                 </div>
             </div>

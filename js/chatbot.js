@@ -1,6 +1,11 @@
-// Advanced Gen Z Chatbot with personality
+// Enhanced Gen Z Chatbot with Hugging Face AI
 class GenZChatbot {
     constructor() {
+        this.huggingFaceApiKey = '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'; // Replace with your actual key
+        this.conversationContext = [];
+        this.userPersonality = {};
+        this.isAIAvailable = true;
+        
         this.personalityTraits = {
             enthusiasm: 0.8,
             empathy: 0.9,
@@ -9,178 +14,340 @@ class GenZChatbot {
             support: 0.95
         };
         
-        this.slangDictionary = {
-            'happy': ['yass', 'slay', 'periodt', 'vibes', 'lit'],
-            'excited': ['yass', 'slay', 'go off', 'main character energy'],
-            'supportive': ['bestie', 'fam', 'you got this', 'sending love'],
-            'empathetic': ['felt', 'big mood', 'same', 'no cap'],
-            'funny': ['lmao', 'dead', 'i can\'t', 'stop 😂']
-        };
-        
-        this.responsePatterns = this.initializeResponsePatterns();
+        // Test the API connection on initialization
+        this.testAPI();
     }
-    
-    initializeResponsePatterns() {
+
+    async testAPI() {
+        try {
+            // Simple test to check if API is accessible
+            await this.callHuggingFaceAPI(
+                'cardiffnlp/twitter-roberta-base-sentiment-latest',
+                { inputs: 'test' }
+            );
+            console.log('🤗 Hugging Face API connected successfully!');
+            this.isAIAvailable = true;
+        } catch (error) {
+            console.warn('⚠️ Hugging Face API not available, using fallback mode');
+            this.isAIAvailable = false;
+        }
+    }
+
+    // Main method to generate AI-powered responses
+    async generatePersonalizedResponse(userMessage, emotionAnalysis, conversationHistory) {
+        // Always show typing indicator for realistic feel
+        await this.simulateThinking();
+        
+        try {
+            if (this.isAIAvailable) {
+                // Use Hugging Face for emotional understanding
+                const aiAnalysis = await this.analyzeWithHuggingFace(userMessage);
+                
+                // Combine AI analysis with our emotion detection
+                const enhancedAnalysis = this.combineAnalyses(emotionAnalysis, aiAnalysis);
+                
+                // Update conversation context
+                this.updateConversationContext(userMessage, enhancedAnalysis);
+                
+                // Generate response using AI + Gen Z personality
+                const response = await this.generateAIResponse(userMessage, enhancedAnalysis);
+                
+                return this.addGenZFlair(response, enhancedAnalysis.emotion);
+            } else {
+                // Fallback to enhanced rule-based responses
+                return this.generateEnhancedFallbackResponse(userMessage, emotionAnalysis);
+            }
+            
+        } catch (error) {
+            console.error('AI response failed:', error);
+            return this.generateEnhancedFallbackResponse(userMessage, emotionAnalysis);
+        }
+    }
+
+    async simulateThinking() {
+        // Random delay between 1-3 seconds for realistic conversation feel
+        const delay = 1000 + Math.random() * 2000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    // Analyze text with Hugging Face sentiment/emotion models
+    async analyzeWithHuggingFace(text) {
+        try {
+            // Using a sentiment analysis model (free and fast)
+            const sentimentResponse = await this.callHuggingFaceAPI(
+                'cardiffnlp/twitter-roberta-base-sentiment-latest',
+                { inputs: text }
+            );
+
+            return {
+                sentiment: this.processSentimentResult(sentimentResponse),
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            throw new Error('Hugging Face analysis failed');
+        }
+    }
+
+    // Generic method to call Hugging Face Inference API
+    async callHuggingFaceAPI(model, data) {
+        const response = await fetch(
+            `https://api-inference.huggingface.co/models/${model}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${this.huggingFaceApiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST',
+                body: JSON.stringify(data)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    processSentimentResult(result) {
+        if (!result || !result[0]) return 'neutral';
+        
+        const sentiments = result[0];
+        const topSentiment = sentiments.reduce((prev, current) => 
+            (prev.score > current.score) ? prev : current
+        );
+        
+        return topSentiment.label.toLowerCase();
+    }
+
+    combineAnalyses(ourAnalysis, aiAnalysis) {
+        if (!aiAnalysis) return ourAnalysis;
+
         return {
-            greeting: [
-                "Hey bestie! 👋 What's the vibe today?",
-                "Hiiii! 👀 Ready to spill the tea?",
-                "Yoo! What's good? 💫",
-                "Hey queen! 👑 How's your day going?"
-            ],
-            farewell: [
-                "Aight imma head out ✌️ Take care bestie!",
-                "Byee! Remember you're that girl! 💅",
-                "Catch you later! Slay all day! 💫",
-                "Peace out! You got this 💪"
-            ],
-            checking: [
-                "You good bestie? 👀",
-                "How we feeling? 🤔",
-                "What's the current mood? 🎵",
-                "Update me! What's the tea? ☕"
-            ],
-            encouraging: [
-                "Periodt! You're doing amazing! 👏",
-                "Slay queen! That's the energy! 💅",
-                "No cap, you're handling this! 💪",
-                "Main character behavior! Love it! 👑"
-            ]
+            emotion: ourAnalysis.emotion,
+            confidence: ourAnalysis.confidence,
+            sentiment: aiAnalysis.sentiment,
+            keywords: ourAnalysis.keywords,
+            isAIAnalyzed: true
         };
     }
-    
-    generatePersonalizedResponse(userMessage, emotionAnalysis, conversationHistory) {
-        const emotion = emotionAnalysis.emotion;
-        const confidence = emotionAnalysis.confidence;
-        
-        // Base response based on emotion
-        let baseResponse = this.getEmotionBasedResponse(emotion, confidence);
-        
-        // Add personality flair
-        baseResponse = this.addPersonalityFlair(baseResponse);
-        
-        // Add relevant slang
-        baseResponse = this.injectSlang(baseResponse, emotion);
-        
-        // Add conversational continuity
-        baseResponse = this.addContinuity(baseResponse, conversationHistory);
-        
-        return baseResponse;
-    }
-    
-    getEmotionBasedResponse(emotion, confidence) {
-        const highConfidence = confidence > 0.7;
-        
-        const emotionResponses = {
-            happy: highConfidence ? 
-                "Yasss! Love that energy for you! ✨" : 
-                "Seems like good vibes! Tell me more 🌟",
-                
-            sad: highConfidence ?
-                "Aww fam 😔 Sending virtual hugs 🫂" :
-                "Sounds like you're going through it 😮‍💨",
-                
-            angry: highConfidence ?
-                "Okay I'd be heated too 😤" :
-                "That sounds frustrating ngl 😠",
-                
-            anxious: highConfidence ?
-                "Big mood 😥 Remember to breathe!" :
-                "Sounds stressful 😮‍💨 You're handling it though!",
-                
-            tired: highConfidence ?
-                "The burnout vibe is real 😴 Rest up!" :
-                "Sounds like you need some me-time 💤",
-                
-            neutral: highConfidence ?
-                "Keeping it balanced I see ⚖️" :
-                "What's on your mind? 🤔"
-        };
-        
-        return emotionResponses[emotion] || "Interesting! Tell me more 👀";
-    }
-    
-    addPersonalityFlair(response) {
-        // Add emojis based on content
-        const emojiMap = {
-            'happy': '✨',
-            'sad': '😔',
-            'angry': '😤',
-            'anxious': '😥',
-            'tired': '😴',
-            'love': '💖',
-            'excited': '🌟',
-            'support': '💪',
-            'funny': '😂'
-        };
-        
-        let flairedResponse = response;
-        
-        // Add relevant emojis
-        Object.keys(emojiMap).forEach(keyword => {
-            if (response.toLowerCase().includes(keyword)) {
-                flairedResponse += ` ${emojiMap[keyword]}`;
-            }
+
+    updateConversationContext(message, analysis) {
+        this.conversationContext.push({
+            message,
+            emotion: analysis.emotion,
+            sentiment: analysis.sentiment,
+            timestamp: new Date()
         });
-        
-        // Occasionally add extra flair
-        if (Math.random() > 0.7) {
-            const extraFlair = [' Periodt!', ' Fr!', ' No cap!', ' Lowkey!', ' Highkey!'];
-            flairedResponse += extraFlair[Math.floor(Math.random() * extraFlair.length)];
+
+        // Keep only last 10 messages for context
+        if (this.conversationContext.length > 10) {
+            this.conversationContext.shift();
         }
-        
-        return flairedResponse;
     }
-    
-    injectSlang(response, emotion) {
-        const emotionSlang = {
-            happy: ['slay', 'yass', 'periodt'],
-            sad: ['felt', 'big mood', 'no cap'],
-            angry: ['sus', 'ghost', 'salty'],
-            anxious: ['same', 'lowkey', 'vibe check'],
-            tired: ['big same', 'main character', 'vibes']
+
+    // Generate response using Hugging Face Chat model
+    async generateAIResponse(userMessage, analysis) {
+        try {
+            // Use a conversational AI model that's available and free
+            const prompt = this.createAIPrompt(userMessage, analysis);
+            
+            const response = await this.callHuggingFaceAPI(
+                'microsoft/DialoGPT-medium',
+                {
+                    inputs: prompt,
+                    parameters: {
+                        max_length: 80,
+                        temperature: 0.8,
+                        do_sample: true,
+                        return_full_text: false
+                    }
+                }
+            );
+
+            return this.processAIResponse(response);
+        } catch (error) {
+            throw new Error('AI response generation failed');
+        }
+    }
+
+    createAIPrompt(userMessage, analysis) {
+        const emotion = analysis.emotion;
+        const sentiment = analysis.sentiment;
+        
+        return `As a supportive Gen Z mental health friend, respond to someone feeling ${emotion}. 
+Be empathetic, use Gen Z slang occasionally, keep it 1 sentence, be genuine but not clinical.
+
+User: ${userMessage}
+AI:`;
+    }
+
+    processAIResponse(response) {
+        if (!response || !response[0] || !response[0].generated_text) {
+            throw new Error('Invalid AI response');
+        }
+
+        let aiResponse = response[0].generated_text;
+        
+        // Clean up the response
+        aiResponse = aiResponse.split('\n')[0]; // Take first line only
+        aiResponse = aiResponse.replace(/AI:/gi, '').trim();
+        
+        return aiResponse || "I'm here for you! 💫";
+    }
+
+    // Enhanced fallback responses with better understanding
+    generateEnhancedFallbackResponse(userMessage, emotionAnalysis) {
+        const emotion = emotionAnalysis.emotion;
+        const keywords = emotionAnalysis.keywords || [];
+        
+        // Check for specific keywords first
+        const keywordResponse = this.getKeywordResponse(keywords, userMessage);
+        if (keywordResponse) return keywordResponse;
+
+        // Check for questions
+        if (this.isQuestion(userMessage)) {
+            return this.getQuestionResponse(emotion);
+        }
+
+        // Emotion-based responses
+        return this.getEmotionResponse(emotion, userMessage);
+    }
+
+    getKeywordResponse(keywords, userMessage) {
+        const keywordMap = {
+            'school': "Ugh academia grind 😫 How's the semester treating you?",
+            'work': "The 9-5 struggle real 😮‍💨 Need to vent about work?",
+            'friends': "Squad drama or good vibes? 👀 Tell me everything!",
+            'family': "Family can be a whole mood fr 😅 What's up?",
+            'food': "Yesss food is the best therapy! 🍕 What's your comfort food?",
+            'sleep': "Sleep is so underrated! 😴 Getting enough Z's?",
+            'music': "Ooo what's on your playlist rn? 🎵 Need recommendations?",
+            'anime': "A fellow person of culture! 📺 What're you watching?",
+            'game': "Gaming is legit therapy! 🎮 What games you playing?",
+            'gym': "Yass getting those gains! 💪 How's the fitness journey?"
         };
-        
-        let slangResponse = response;
-        const availableSlang = emotionSlang[emotion] || [];
-        
-        if (availableSlang.length > 0 && Math.random() > 0.5) {
-            const randomSlang = availableSlang[Math.floor(Math.random() * availableSlang.length)];
-            slangResponse = slangResponse.replace('.', ` ${randomSlang}.`);
-        }
-        
-        return slangResponse;
-    }
-    
-    addContinuity(response, conversationHistory) {
-        if (conversationHistory.length < 3) return response;
-        
-        // Reference previous topics occasionally
-        const recentUserMessages = conversationHistory
-            .filter(msg => msg.role === 'user')
-            .slice(-3)
-            .map(msg => msg.message);
-        
-        if (recentUserMessages.length > 0 && Math.random() > 0.7) {
-            const lastTopic = this.extractMainTopic(recentUserMessages[recentUserMessages.length - 1]);
-            if (lastTopic) {
-                response += ` Btw how's that ${lastTopic} situation going? 👀`;
-            }
-        }
-        
-        return response;
-    }
-    
-    extractMainTopic(message) {
-        const topics = ['work', 'school', 'friends', 'family', 'relationship', 'health', 'hobby'];
-        for (const topic of topics) {
-            if (message.toLowerCase().includes(topic)) {
-                return topic;
+
+        for (const keyword of keywords) {
+            if (keywordMap[keyword]) {
+                return keywordMap[keyword];
             }
         }
         return null;
     }
+
+    isQuestion(message) {
+        return message.includes('?') || 
+               message.toLowerCase().includes('should i') ||
+               message.toLowerCase().includes('what do') ||
+               message.toLowerCase().includes('how do') ||
+               message.toLowerCase().includes('can you');
+    }
+
+    getQuestionResponse(emotion) {
+        const responses = {
+            'happy': "Hmm that's a vibe! 😊 I'd say follow what makes you happy!",
+            'sad': "That's tough 😔 Maybe trust your gut feeling on this one?",
+            'angry': "I feel you 😤 Take a breath and do what feels right for your peace",
+            'anxious': "That's anxiety-inducing fr 😥 Maybe break it down into smaller steps?",
+            'tired': "Exhausting decisions 😴 Listen to what your mind and body need",
+            'neutral': "Interesting question! 🤔 What does your intuition say?"
+        };
+        return responses[emotion] || "That's a real dilemma! 😬 Follow your heart bestie!";
+    }
+
+    getEmotionResponse(emotion, userMessage) {
+        const responseTemplates = {
+            happy: [
+                "Yasss! Love this energy for you! ✨",
+                "Periodt! That's the vibe! 💅",
+                "Slay! Keeping those good energies flowing! 🌟",
+                "No cap, that's amazing! So happy for you! 🎉",
+                "Main character energy! Love to see it! 👑"
+            ],
+            sad: [
+                "Aww fam, I'm sending virtual hugs 🫂",
+                "That's tough, no cap 😔 Remember this feeling is temporary!",
+                "You're valid for feeling that way 💖 Take your time",
+                "It's giving resilience! You've got this 💪",
+                "Big mood sometimes 😮‍💨 But you're stronger than you think!"
+            ],
+            angry: [
+                "Okay I'd be heated too ngl 🔥",
+                "They really did that? Not the vibe 😤",
+                "Take a deep breath bestie, don't let them ruin your day 💅",
+                "That's actually so foul 😠 Your feelings are valid tho",
+                "The audacity! Sending calming energies your way 🧘‍♀️"
+            ],
+            anxious: [
+                "I feel that 😥 Remember to breathe, you've survived 100% of your bad days!",
+                "That's totally valid! Maybe try the 5-4-3-2-1 grounding method?",
+                "No cap, anxiety is the worst 😮‍💨 You're doing amazing just by dealing with it",
+                "It's giving warrior energy! You're handling this like a pro 💪",
+                "One step at a time bestie! You've got this 🌟"
+            ],
+            tired: [
+                "Big same 😴 Self-care isn't selfish, take that rest!",
+                "That's the burnout vibe 😮‍💨 Remember to hydrate and take breaks!",
+                "You're doing the most! Maybe time for a little treat? 🍵",
+                "It's giving exhausted queen 👑 Your battery needs charging!",
+                "Listen to your body bestie! Rest is productive too 💤"
+            ],
+            neutral: [
+                "Keeping it real, I respect that 💯",
+                "Valid! Sometimes neutral is the move 🤷‍♀️",
+                "No big vibes, just existing - felt that 😌",
+                "It's giving balanced queen! Love that energy ⚖️",
+                "Sometimes the middle ground is the best ground 🌈"
+            ]
+        };
+
+        const responses = responseTemplates[emotion] || ["I'm here for you! 💫"];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    addGenZFlair(response, emotion) {
+        // Add emojis based on emotion
+        const emojiMap = {
+            'happy': ['✨', '🌟', '🎉', '💫'],
+            'sad': ['😔', '💖', '🫂', '🌧️'],
+            'angry': ['😤', '🔥', '💅', '⚡'],
+            'anxious': ['😥', '🌟', '💪', '🌀'],
+            'tired': ['😴', '💤', '🍵', '🌙'],
+            'neutral': ['💫', '🤷‍♀️', '⚖️', '🔮']
+        };
+
+        const emojis = emojiMap[emotion] || ['💫'];
+        const selectedEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+        // Occasionally add Gen Z slang
+        if (Math.random() > 0.5) {
+            const slang = [' Periodt!', ' Fr!', ' No cap!', ' Lowkey!', ' Highkey!'];
+            response += slang[Math.floor(Math.random() * slang.length)];
+        }
+
+        return response + ' ' + selectedEmoji;
+    }
+
+    // Method to get conversation insights
+    getConversationInsights() {
+        const emotionCounts = {};
+        this.conversationContext.forEach(ctx => {
+            emotionCounts[ctx.emotion] = (emotionCounts[ctx.emotion] || 0) + 1;
+        });
+
+        const dominantEmotion = Object.keys(emotionCounts).reduce((a, b) => 
+            emotionCounts[a] > emotionCounts[b] ? a : b, 'neutral'
+        );
+
+        return {
+            totalMessages: this.conversationContext.length,
+            dominantEmotion,
+            emotionDistribution: emotionCounts,
+            isAIActive: this.isAIAvailable
+        };
+    }
 }
 
-// Initialize the Gen Z chatbot
+// Initialize the enhanced chatbot
 const genZChatbot = new GenZChatbot();
